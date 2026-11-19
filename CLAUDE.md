@@ -7,7 +7,7 @@ Full-stack app to plan an MCU rewatch before *Avengers: Doomsday* (feature 1) an
 ## How to work here
 
 - Go through steps one at a time and wait for the user's input before starting the next step.
-- Brief rules: the logic of features 1 and 2 must be written by hand, with no libraries that solve them (zod for validation is fine). The README must say how AI tools were used; that section is the user's to write, so don't write it for them.
+- Brief rules: the logic of features 1 and 2 must be written by hand, with no libraries that solve them (zod for validation is fine). The README must say how AI tools were used: its "AI usage" section has the user's own wording, so don't change it without asking.
 - When the brief is unclear, make a reasonable choice and record it under "Decisions where the brief was open" in `README.md`.
 - Keep `README.md` current when behavior changes: API table, error codes, feature sections, decisions.
 
@@ -74,5 +74,5 @@ To check the UI: run the API on port 5000 (the Vite proxy target) and Vite on 51
 
 - Done: scaffold, feature 1 (movies, rewatch order, cycle detection), feature 2 (cinemas, booking quote). Unit tests and end-to-end checks pass for every expected result in the brief.
 - Feature 3: done, styled after the user's design canvas (https://claude.ai/code/artifact/e4cb1aa6-6261-4a6e-9eba-c0f8f39b5883); checked by clicking through in headless Edge.
-- Not done yet: README "how AI tools were used" section (user writes it), bonus data model diagram, Docker Compose for the whole app.
+- Bonus done: Docker Compose for the whole app, and the data model diagram (a Mermaid `erDiagram` at the top of the README's Data model section, checked to render with Mermaid 11).
 - Git: the repo is initialized; commit only when the user asks.
