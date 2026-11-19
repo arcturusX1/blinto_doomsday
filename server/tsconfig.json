@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "sourceMap": true,
+    "skipLibCheck": true,
+
+    /* Node runs .ts directly in dev; tsc rewrites .ts imports to .js on build */
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}
