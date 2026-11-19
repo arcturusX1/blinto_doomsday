@@ -1,0 +1,61 @@
+Front end design doc for blinto_doomsday. Keep track of context in CLAUDE.md for future work. go through the steps individually and wait input before 
+proceeding to the next step. the backend (features 1 and 2) is in design doc prompt.txt, this doc covers the client 
+
+Step 0: see design doc prompt.txt step 0 
+
+Step 1: API and data
+
+1.1: api calls (client/src/api) 
+request<T>() wraps fetch and throws an ApiError with status, code and message, so the server's error codes (CIRCULAR_DEPENDENCY, DUPLICATE_TITLE...) reach the ui 
+movies.ts and cinemas.ts have typed functions for every endpoint: getMovies, createMovie, updateMovie, getRewatchOrder, getCinemas, getBookingQuote 
+movies and cinemas use "id" (not "_id"), prereqs are lists of mongo ids 
+
+1.2 useApi(key, load) hook (hooks/useApi.ts): calls load(key) when the key changes and again on reload(). a null key loads nothing 
+results are tagged with their key so switching keys never shows old data. load runs through useEffectEvent. no data fetching library 
+
+1.3 helpers (lib/format.ts): formatRuntime(727) -> "12h 7m", formatList([6, 9, 20]) -> "6, 9 and 20" 
+
+Step 2: Design (from the design canvas)
+
+2.1 theme in index.css: dark only (<html class="dark">), colors are the .dark tokens: background #070a06, card #10160d, lime primary #9fca6a, orange destructive #f0a77d, border/input are light at 12%/22% 
+fonts through fontsource: inter for the body, saira 600 and 900 italic for headings (font-heading, bank gothic first if it's installed). radius 0.75rem 
+
+2.2 edit the shadcn components so the views stay plain: pill buttons with glass (translucent, filled for the current page), nav and hero sizes, 52px inputs and selects, 
+20px cards with 28px padding and saira titles, uppercase table headers in a rounded border, 8px progress bar, success and destructive alerts, 20px checkboxes, semibold labels 
+views only set layout with className. use buttonVariants on links through cn(), otherwise the base's transparent border wins 
+
+2.3 layout (components/layout): SiteHeader with the avengers logo, "DOOMSDAY READY" and nav pills (NavLink's aria-current="page" fills the active one) 
+DisplayTitle: big saira 900 italic small caps with a text shadow. PageLayout: banner tint with the header, title and description, opaque background below it 
+the hero image is one static .site-backdrop layer in App.tsx, pages only paint tints over it (.hero-backdrop on the landing page, .banner-backdrop on the others) 
+
+2.4 routes (react router 8): / (landing), /add-movies, /watch-order, /find-cinemas, anything else -> / 
+
+Step 3: Pages
+
+3.1 landing (pages/LandingPage.tsx): full screen hero image, headline "Are You Ready for Doomsday?" 
+two buttons: Prepare (filled, -> /watch-order) and Book Opening Night (glass, -> /find-cinemas) 
+the title and buttons descend together from about the middle of the screen, fading in from 20% opacity (1.2s, ease out, tw-animate-css, motion-safe only) 
+
+3.2 add movies (views/MoviesView.tsx): AddMovieForm card with title, release year and runtime side by side, and "watch these first" 
+check fields before sending with the server's limits (year 1900 to next year, runtime 1-300, title not already in the list), errors show under each field. a 409 DUPLICATE_TITLE goes under the title 
+PrereqPicker is a field style button that opens a checklist of movies with their years, it closes after a movie is added. show an "Added <title>" success alert 
+below it a "your movies" table: watched checkbox, title, year, runtime, prereq badges and EditPrereqsDialog, which shows the 409 cycle message from the server and stays open 
+
+3.3 watch order (views/RewatchView.tsx): target movie select, newest first and the newest preselected 
+"Before <title>" card: "<time> of watching left" or "All caught up. You are ready.", a progress bar "n of m watched" with the percent 
+table #, watched, title, runtime. watched rows are dimmed and struck through. empty state when the target has no prereqs 
+
+3.4 find cinemas (views/BookingView.tsx): cinema select (first one preselected) with "Sells bundles of 2 and 5 seats.", group size, get quote button 
+check the group size first (whole number, 1-10000). the quote card shows "n bundles" and a table: bundle size, how many, seats 
+"not possible" and errors show as an orange alert. changing the cinema or group size clears the old quote 
+
+Step 4: Page transitions
+
+4.1 pages slide sideways in the header's order: home (logo), add movies, find cinemas, watch order (lib/navigation.ts) 
+going to a button further right slides the new page in from the right and the old one out to the left, and the other way round 
+TransitionLink runs navigate() in startTransition with addTransitionType("nav-left" or "nav-right"). use it for every link instead of Link 
+App.tsx wraps the routes in react's <ViewTransition> keyed by path, its enter/exit classes are styled in index.css (550ms, ease out) 
+select the classes as ::view-transition-old(*.slide-to-left), the (.slide-to-left) form doesn't match in edge 
+
+4.2 the header is a named <ViewTransition> (site-header) with z-index above the pages, so it stays put and crossfades the active pill 
+the hero image layer is outside the transition so it doesn't move. pages scroll to the top on navigation 

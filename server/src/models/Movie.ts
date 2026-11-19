@@ -1,4 +1,5 @@
 import mongoose, { Schema, type InferSchemaType } from 'mongoose';
+import { useApiJson } from './apiJson.ts';
 
 export const MIN_RELEASE_YEAR = 1900;
 
@@ -26,16 +27,7 @@ const movieSchema = new Schema(
   { timestamps: true }
 );
 
-// API responses use `id` instead of Mongo's `_id`, and leave out the internal `__v`.
-// Set separately because passing a transform in the schema options breaks type inference.
-movieSchema.set('toJSON', {
-  virtuals: true,
-  versionKey: false,
-  transform: (_doc, ret) => {
-    const { _id, ...rest } = ret;
-    return rest;
-  },
-});
+useApiJson(movieSchema);
 
 export type Movie = InferSchemaType<typeof movieSchema>;
 

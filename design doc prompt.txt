@@ -1,0 +1,70 @@
+Design doc for blinto_doomsday. Keep track of context in CLAUDE.md for future work. go through the steps individually and wait input before 
+proceeding to the next step. For features 1 and 2, do not use libraries and implement it manually as described in this doc
+
+Step 0: scaffold the project with server and client folders separately. setup express backend in server and react frontend(with react compiler through babel) 
+with vite in client. use typescript for both modules. use module imports 
+server runs the .ts files directly with node (type stripping, no tsx/ts-node), so local imports end in .ts and tsc builds to server/dist. 
+vite proxies /api to the server in dev. root package.json runs both with concurrently, docker-compose.yml runs a local mongodb 
+
+Step 1: Movie rewatch suggestion
+
+1.1: Feature 1: rewatch order 
+create a mongoose schema "movie": title (string, required, unique, trimmed), releaseYear(number, required), runtime(number, required, min: 1, max: 300), prereqs(list of movie ids, ref: movie, default empty list), watched(bool, default false)
+use validation of release year with minimum as 1900 and maximum as current year + 1 (checked on every save, not once at startup). enable timestamps for entries
+responses use "id" instead of "_id" and leave out "__v" (shared toJSON setup in models/apiJson.ts) 
+
+1.2 algorithm for post order dfs (services/movieGraph.ts): build a type "graph" as a map, key: string, value: node. build type GraphNode with field prereqs as a list of strings (readonly for both types). 
+the main function for postOrder: keep track of state with a new map either "in progress" or "done". keep a list of current nodes (the path)
+and pop a node once all of its prereqs are explored, then add it to the result list(order of watching). return the result list. 
+skip nodes that are "done" so a shared prereq shows up once. reaching a node that is "in progress" means a cycle, throw a CycleError with the path. 
+have the postorder function in a wrapper that removes the target movie from the list (rewatchOrder). 
+cycle check: findCycle(id, prereqs, graph) copies the graph, sets the proposed prereqs and runs postOrder from that movie, returns the loop or null. 
+createsCycle(id, prereqs, graph) wraps it and returns true/false. one search from the changed movie is enough since the stored graph never has a cycle 
+
+1.3 add error handling for duplicate titles and circular dependency as a 409 error. 
+AppError class with status and code. one error middleware at the end of app.ts turns errors into { error: code, message } 
+mongo duplicate key (11000) maps by field: title -> DUPLICATE_TITLE, name -> DUPLICATE_NAME 
+mongoose validation errors, invalid json and bad ids -> 400. unknown routes -> 404 NOT_FOUND. anything else -> 500 INTERNAL_ERROR (logged, not returned) 
+
+1.4 services (services/movie.service.ts): build 6 functions: 
+buildGraph() which takes the movies from the database and converts them into movie nodes (all strings), returns Map<id, MovieNode>. 
+createMovie() takes data, removes duplicate prereq ids, checks they all exist (404 PREREQ_NOT_FOUND) and pushes to database after validation. no cycle check, a new movie can't close a loop 
+updateMovie() takes the id and new data, loads the movie (404 MOVIE_NOT_FOUND), validates prereqs like createMovie, calls a cycle checker (createsCycle, 409 CIRCULAR_DEPENDENCY), applies only the fields that were sent and saves 
+getRewatchOrder() takes the id, runs rewatchOrder and turns the ids back into movies. also returns total, watchedCount and unwatchedRuntime 
+listMovies() returns all movies sorted by release year then title. getMovie() returns one movie by id 
+
+1.5 controller and routes: POST /api/movies, GET /api/movies, GET /api/movies/:id, PATCH /api/movies/:id, GET /api/movies/:id/rewatch-order 
+validate request bodies with zod (validation/movieSchemas.ts) in a validateBody middleware. reject unknown fields and wrong types with a 400 
+zod checks the shape and types, the mongoose model checks the values (ranges, required, unique). releaseYear and runtime must be whole numbers 
+prereqs are mongo ids, not titles. the controller only passes the request to the service 
+rewatch response: { target: { id, title }, order: [{ id, title, runtime, watched }], total, watchedCount, unwatchedRuntime } 
+
+1.6 sample data and tests: data/sampleMovies.ts has the 8 movies from the brief (prereqs by title, converted to ids when seeding). npm run seed replaces all movies and cinemas 
+unit tests for the graph (services/movieGraph.test.ts, run with node --test) cover the brief's expected results 
+
+Step 2: Cinemas and watch-party booking
+
+2.1 create a mongoose schema "cinema": name(string, required, unique, trimmed), bundleSizes(list of numbers, 1-10 different sizes, each 1-500). enable timestamps for entries
+
+2.2 algorithm for booking (services/bookingQuote.ts): fewestBundles(sizes, groupSize) finds the fewest bundles that add up to exactly the group size (coin change algo). 
+use dynamic programming: best[0] = 0, best[s] = 1 + min(best[s - b]) for every size b <= s. 
+keep the last bundle used for each s to read the bundles back. return { totalBundles, bundles: [{ size, count }] } with the largest size first, or null if not possible 
+ties go to bigger bundles (sizes tried largest first, only a strictly better answer replaces the current one) 
+
+2.3 services (services/cinema.service.ts): build 3 functions: 
+createCinema() removes duplicate bundle sizes and sorts them before saving. listCinemas() returns all cinemas sorted by name. 
+getBookingQuote() takes the id and group size (404 CINEMA_NOT_FOUND) and runs fewestBundles. "not possible" is a 200 with possible: false, not an error 
+
+2.4 controller and routes: POST /api/cinemas, GET /api/cinemas, GET /api/cinemas/:id/booking?groupSize=6 
+groupSize must be a whole number from 1 to 10000 (validateQuery middleware, stores the result in res.locals since req.query is read-only in express 5) 
+booking response: { cinema: { id, name }, groupSize, possible, totalBundles, bundles: [{ size, count }] } 
+
+2.5 sample data and tests: data/sampleCinemas.ts has one cinema per booking example from the brief (names made up). 
+unit tests (services/bookingQuote.test.ts) cover the brief's examples and compare against a brute force search on every small case 
+
+Step 3: Frontend 
+use shadcn/ui (base-nova style on base ui, tailwind v4, lucide icons) with the @/ alias for client/src. react router pages: / (landing), /add-movies, /watch-order, /find-cinemas 
+styled after the design canvas: dark only (<html class="dark">), green-black background, lime accent, orange errors, inter body, saira headings, hero image banner. the look is in the theme tokens and the edited shadcn components (pill buttons, 52px fields, 20px cards), views only set layout 
+three views from the brief: movies (add movies, edit prereqs, tick watched), rewatch plan (pick a target movie, ordered list with watched ticks, progress bar, remaining watch time), booking (pick a cinema, enter a group size, see the bundles or "not possible") 
+api calls in client/src/api (typed, ApiError keeps the server's error code). useApi(key, load) hook loads data and reloads after changes, no data fetching library 
+movies: AddMovieForm (per field errors, "added" notice), a table with watched checkboxes and prereq badges, EditPrereqsDialog that shows the 409 cycle message from the server. PrereqPicker is a field style button that opens a checklist of movies with their years 

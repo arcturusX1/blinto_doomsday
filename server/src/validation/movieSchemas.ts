@@ -1,6 +1,5 @@
 import { z } from 'zod';
-
-const objectId = z.string().regex(/^[0-9a-f]{24}$/i, 'Invalid movie id');
+import { objectId } from './objectId.ts';
 
 // Shape and types only. Value ranges (release year, runtime) and title
 // uniqueness live in the Mongoose model, so each rule is defined once.
@@ -8,7 +7,7 @@ export const createMovieSchema = z.strictObject({
   title: z.string(),
   releaseYear: z.int(),
   runtime: z.int(),
-  prereqs: z.array(objectId).optional(),
+  prereqs: z.array(objectId('movie')).optional(),
   watched: z.boolean().optional(),
 });
 

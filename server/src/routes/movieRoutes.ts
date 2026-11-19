@@ -6,7 +6,7 @@ import {
   updateMovie,
   getRewatchOrder,
 } from '../controllers/movieController.ts';
-import { validateBody } from '../middleware/validateBody.ts';
+import { validateBody } from '../middleware/validate.ts';
 import { createMovieSchema, updateMovieSchema } from '../validation/movieSchemas.ts';
 
 const router = Router();

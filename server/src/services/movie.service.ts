@@ -2,20 +2,13 @@ import Movie, { type Movie as MovieFields } from '../models/Movie.ts';
 import { AppError } from '../errors/AppError.ts';
 import { createsCycle, findCycle, rewatchOrder } from './movieGraph.ts';
 import type { CreateMovieInput, UpdateMovieInput } from '../validation/movieSchemas.ts';
+import { parseId } from '../validation/objectId.ts';
 
 // A movie as a plain object, with its id and prerequisite ids as strings.
 export type MovieNode = Omit<MovieFields, 'prereqs'> & { _id: string; prereqs: string[] };
 
-const OBJECT_ID = /^[0-9a-f]{24}$/i;
-
-// Checks a movie id from the URL and returns it in canonical (lowercase) form, or throws 400.
-function parseId(id: string): string {
-  if (!OBJECT_ID.test(id)) throw new AppError(400, 'INVALID_ID', `Invalid movie id: ${id}`);
-  return id.toLowerCase();
-}
-
 async function findMovie(id: string) {
-  const movie = await Movie.findById(parseId(id));
+  const movie = await Movie.findById(parseId(id, 'movie'));
   if (!movie) throw new AppError(404, 'MOVIE_NOT_FOUND', `No movie with id ${id}`);
   return movie;
 }
@@ -88,7 +81,7 @@ export async function updateMovie(id: string, data: UpdateMovieInput) {
 }
 
 export async function getRewatchOrder(id: string) {
-  const movieId = parseId(id);
+  const movieId = parseId(id, 'movie');
   const graph = await buildGraph();
   const target = graph.get(movieId);
   if (!target) throw new AppError(404, 'MOVIE_NOT_FOUND', `No movie with id ${id}`);

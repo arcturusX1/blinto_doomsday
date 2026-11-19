@@ -4,8 +4,19 @@ import { AppError } from '../errors/AppError.ts';
 
 const MONGO_DUPLICATE_KEY = 11000;
 
-function isDuplicateKeyError(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && 'code' in err && err.code === MONGO_DUPLICATE_KEY;
+// Unique fields, by the error each one's duplicate-key violation turns into
+const DUPLICATE_ERRORS: Record<string, { error: string; message: string }> = {
+  title: { error: 'DUPLICATE_TITLE', message: 'A movie with this title already exists' },
+  name: { error: 'DUPLICATE_NAME', message: 'A cinema with this name already exists' },
+};
+
+// For a Mongo duplicate-key error, the field that clashed (from the index's keyPattern); otherwise null.
+function duplicateKeyField(err: unknown): string | null {
+  if (typeof err !== 'object' || err === null || !('code' in err) || err.code !== MONGO_DUPLICATE_KEY) {
+    return null;
+  }
+  const keyPattern = 'keyPattern' in err ? err.keyPattern : undefined;
+  return typeof keyPattern === 'object' && keyPattern !== null ? (Object.keys(keyPattern)[0] ?? '') : '';
 }
 
 // express.json() tags malformed request bodies with this type.
@@ -27,10 +38,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, next: N
     return res.status(err.status).json({ error: err.code, message: err.message });
   }
 
-  if (isDuplicateKeyError(err)) {
-    return res
-      .status(409)
-      .json({ error: 'DUPLICATE_TITLE', message: 'A movie with this title already exists' });
+  const duplicateField = duplicateKeyField(err);
+  if (duplicateField !== null) {
+    const body = DUPLICATE_ERRORS[duplicateField] ?? {
+      error: 'DUPLICATE_KEY',
+      message: 'A record with this value already exists',
+    };
+    return res.status(409).json(body);
   }
 
   // Client mistakes that would otherwise fall through to a 500

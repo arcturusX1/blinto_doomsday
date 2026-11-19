@@ -1,14 +1,17 @@
-// Replaces every movie in the configured database with the sample data.
+// Replaces every movie and cinema in the configured database with the sample data.
 // Usage: npm run seed
 import 'dotenv/config';
 import mongoose, { type Types } from 'mongoose';
 import { connectDB } from '../config/db.ts';
 import Movie from '../models/Movie.ts';
+import Cinema from '../models/Cinema.ts';
 import { sampleMovies } from '../data/sampleMovies.ts';
+import { sampleCinemas } from '../data/sampleCinemas.ts';
 
 await connectDB();
-await Movie.init(); // make sure the unique title index exists
-await Movie.deleteMany({});
+// Make sure the unique title and name indexes exist
+await Promise.all([Movie.init(), Cinema.init()]);
+await Promise.all([Movie.deleteMany({}), Cinema.deleteMany({})]);
 
 const idsByTitle = new Map<string, Types.ObjectId>();
 function idOf(title: string): Types.ObjectId {
@@ -23,5 +26,7 @@ for (const { prereqs, ...fields } of sampleMovies) {
   idsByTitle.set(fields.title, movie._id);
 }
 
-console.log(`Seeded ${sampleMovies.length} movies`);
+await Cinema.create(sampleCinemas);
+
+console.log(`Seeded ${sampleMovies.length} movies and ${sampleCinemas.length} cinemas`);
 await mongoose.disconnect();
