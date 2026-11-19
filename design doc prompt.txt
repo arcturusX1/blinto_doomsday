@@ -4,7 +4,9 @@ proceeding to the next step. For features 1 and 2, do not use libraries and impl
 Step 0: scaffold the project with server and client folders separately. setup express backend in server and react frontend(with react compiler through babel) 
 with vite in client. use typescript for both modules. use module imports 
 server runs the .ts files directly with node (type stripping, no tsx/ts-node), so local imports end in .ts and tsc builds to server/dist. 
-vite proxies /api to the server in dev. root package.json runs both with concurrently, docker-compose.yml runs a local mongodb 
+vite proxies /api to the server in dev. root package.json runs both with concurrently. docker compose up -d mongo starts just the database for dev 
+docker compose up --build starts everything (bonus): mongo, a seed job that only seeds an empty database (seed --if-empty), the server compiled with tsc, 
+and the client built by vite and served by nginx on localhost:8080 (nginx forwards /api to the server and falls back to index.html for the routes) 
 
 Step 1: Movie rewatch suggestion
 
@@ -61,10 +63,3 @@ booking response: { cinema: { id, name }, groupSize, possible, totalBundles, bun
 
 2.5 sample data and tests: data/sampleCinemas.ts has one cinema per booking example from the brief (names made up). 
 unit tests (services/bookingQuote.test.ts) cover the brief's examples and compare against a brute force search on every small case 
-
-Step 3: Frontend 
-use shadcn/ui (base-nova style on base ui, tailwind v4, lucide icons) with the @/ alias for client/src. react router pages: / (landing), /add-movies, /watch-order, /find-cinemas 
-styled after the design canvas: dark only (<html class="dark">), green-black background, lime accent, orange errors, inter body, saira headings, hero image banner. the look is in the theme tokens and the edited shadcn components (pill buttons, 52px fields, 20px cards), views only set layout 
-three views from the brief: movies (add movies, edit prereqs, tick watched), rewatch plan (pick a target movie, ordered list with watched ticks, progress bar, remaining watch time), booking (pick a cinema, enter a group size, see the bundles or "not possible") 
-api calls in client/src/api (typed, ApiError keeps the server's error code). useApi(key, load) hook loads data and reloads after changes, no data fetching library 
-movies: AddMovieForm (per field errors, "added" notice), a table with watched checkboxes and prereq badges, EditPrereqsDialog that shows the 409 cycle message from the server. PrereqPicker is a field style button that opens a checklist of movies with their years 

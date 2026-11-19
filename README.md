@@ -7,12 +7,31 @@ server/   Express + Mongoose REST API in TypeScript (port 5000)
 client/   React + Vite + TypeScript (port 5173)
 ```
 
-## Setup
+## Run with Docker
+
+One command starts everything (needs Docker with Compose):
+
+```bash
+docker compose up --build
+```
+
+Then open http://localhost:8080. The first start loads the brief's sample movies and cinemas into the empty database.
+
+| Service  | What it does |
+| -------- | ------------ |
+| `mongo`  | MongoDB 8, data kept in the `mongo-data` volume. Published on 27017 so local development can use it too. |
+| `seed`   | Runs once on each start and loads the sample data only if the database has no movies or cinemas, so it never overwrites your data. |
+| `server` | The API, compiled to JavaScript and run on Node 22. Only reachable inside Compose. |
+| `client` | nginx serving the built React app on port 8080. It forwards `/api` to `server`, so the app and API share one origin. |
+
+Stop with `docker compose down`; add `-v` to also delete the database.
+
+## Local development
 
 ```bash
 npm install            # root tooling (concurrently)
 npm run install:all    # server + client deps
-docker compose up -d   # local MongoDB (or set MONGO_URI in server/.env to Atlas etc.)
+docker compose up -d mongo     # just the database (or set MONGO_URI in server/.env to Atlas etc.)
 npm run seed --prefix server   # load the brief's sample movies and cinemas (replaces all of both)
 npm run dev            # runs API and client together
 ```

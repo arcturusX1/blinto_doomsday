@@ -59,7 +59,7 @@ client/src/
 
 ## Testing against a real database
 
-The dev database is this project's Compose service (`docker compose up -d`, container `blinto_doomsday-mongo-1` on 27017, holding the user's data); the server can't start without it ("Failed running 'src/server.ts'" plus Vite `ECONNREFUSED` on `/api`). Another project's container, `steam-mongo`, also binds 27017, so only one of them can run at a time. For end-to-end checks, don't touch the dev database: start a throwaway container and point the server at it:
+The dev database is this project's Compose `mongo` service (`docker compose up -d mongo`, container `blinto_doomsday-mongo-1` on 27017, holding the user's data). A plain `docker compose up` starts the whole app instead: mongo, a `seed` job that only seeds an empty database (`seed.ts --if-empty`), the compiled server, and nginx serving the client on http://localhost:8080 with `/api` proxied to the server (Dockerfiles in `server/` and `client/`, `client/nginx.conf`). Without the database the server can't start ("Failed running 'src/server.ts'" plus Vite `ECONNREFUSED` on `/api`). Another project's container, `steam-mongo`, also binds 27017, so only one of them can run at a time. For end-to-end checks, don't touch the dev database: start a throwaway container and point the server at it:
 
 ```bash
 docker run -d --rm --name doomsday-e2e-mongo -p 27018:27017 mongo:8
