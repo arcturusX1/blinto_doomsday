@@ -27,12 +27,14 @@ views only set layout with className. use buttonVariants on links through cn(), 
 2.3 layout (components/layout): SiteHeader with the avengers logo, "DOOMSDAY READY" and nav pills (NavLink's aria-current="page" fills the active one) 
 DisplayTitle: big saira 900 italic small caps with a text shadow. PageLayout: banner tint with the header, title and description, opaque background below it 
 the hero image is one static .site-backdrop layer in App.tsx, pages only paint tints over it (.hero-backdrop on the landing page, .banner-backdrop on the others) 
+its background-position centres the hooded figure (46.4% across the photo) on any screen, clamped so the image never pulls in from the edges 
 
 2.4 routes (react router 8): / (landing), /add-movies, /watch-order, /find-cinemas, anything else -> / 
 
 Step 3: Pages
 
-3.1 landing (pages/LandingPage.tsx): full screen hero image, headline "Are You Ready for Doomsday?" 
+3.1 landing (pages/LandingPage.tsx): full screen hero image, headline "Are You Ready for" with the doomsday logo image (assets/doomsday-logo.png) and "?" below it 
+the logo and "?" span exactly the width of the line above (row is w-0 min-w-full), "?" centred on the logo letters. screen readers get the full sentence from an sr-only copy 
 two buttons: Prepare (filled, -> /watch-order) and Book Opening Night (glass, -> /find-cinemas) 
 the title and buttons descend together from about the middle of the screen, fading in from 20% opacity (1.2s, ease out, tw-animate-css, motion-safe only) 
 

@@ -138,9 +138,13 @@
   /* The hero image, one screen tall at the top of every page. It sits outside the page
      transition (App.tsx), so pages slide over it while it stays still. */
   .site-backdrop {
+    /* Width of the cover-sized image (the photo is 1476x830) */
+    --backdrop-width: max(100vw, 100svh * 1476 / 830);
     background-image: url('./assets/doomsday-hero.jpg');
     background-size: cover;
-    background-position: center 18%;
+    /* Centre the hooded figure (46.4% across the photo) on any screen shape, clamped so the
+       image never pulls in from either edge. Plain "center" pushes him left on narrow screens. */
+    background-position: clamp(100vw - var(--backdrop-width), 50vw - 0.464 * var(--backdrop-width), 0px) 18%;
     background-repeat: no-repeat;
   }
 
